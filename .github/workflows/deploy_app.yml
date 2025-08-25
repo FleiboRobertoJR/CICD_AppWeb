@@ -3,30 +3,43 @@ name: Deploy para VPS
 on:
   push:
     branches:
-      - main   # dispara quando fizer push na branch main
+      - main  # Dispara quando houver push na branch main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Pega o código do repositório
       - name: Checkout código
         uses: actions/checkout@v4
 
+      # 2️⃣ Configura chave SSH
       - name: Configurar chave SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      # 3️⃣ Criar diretório na VPS (caso não exista) e garantir permissões
+      - name: Preparar diretório na VPS
+        run: |
+          ssh -p 22376 -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            mkdir -p /srv/docker/meu-app/app &&
+            chown -R ${{ secrets.SERVER_USER }}:${{ secrets.SERVER_USER }} /srv/docker/meu-app/app &&
+            chmod -R 755 /srv/docker/meu-app/app
+          "
+
+      # 4️⃣ Copiar arquivos para VPS
       - name: Copiar arquivos para VPS
         run: |
           rsync -avz -e "ssh -p 22376 -o StrictHostKeyChecking=no" ./ \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/home/${{ secrets.SERVER_USER }}/meuapp
+          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/srv/docker/meu-app/app/
 
-      - name: Deploy com Docker Compose
+      # 5️⃣ Deploy via Docker Compose
+      - name: Deploy na VPS
         run: |
           ssh -p 22376 -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
-            cd /home/${{ secrets.SERVER_USER }}/meuapp &&
-            docker compose pull &&
+            cd /srv/docker/meu-app &&
+            docker compose down &&
             docker compose up -d --build
           "
