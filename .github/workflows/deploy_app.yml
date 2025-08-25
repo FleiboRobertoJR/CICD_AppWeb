@@ -15,7 +15,7 @@ jobs:
       # Rodar testes antes do deploy (boa prática)
       - name: Run Tests
         run: |
-          cd app
+          cd /srv/docker/meu-app/app
           npm install
           npm test
 
