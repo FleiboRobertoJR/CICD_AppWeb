@@ -20,7 +20,7 @@ jobs:
 
       - name: Copiar arquivos para VPS
         run: |
-          rsync -avz -e "ssh -p 22376 StrictHostKeyChecking=no" ./ \
+          rsync -avz -e "ssh -p 22376 -o StrictHostKeyChecking=no" ./ \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/home/${{ secrets.SERVER_USER }}/meuapp
 
       - name: Deploy com Docker Compose
