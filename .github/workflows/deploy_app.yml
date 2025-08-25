@@ -1,8 +1,9 @@
-name: CI/CD Deploy to VPS
+name: Deploy para VPS
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main   # dispara quando fizer push na branch main
 
 jobs:
   deploy:
@@ -10,37 +11,22 @@ jobs:
 
     steps:
       - name: Checkout código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Rodar testes antes do deploy (boa prática)
-      - name: Run Tests
-        run: |
-          cd /srv/docker/meu-app/app
-          npm install
-          npm test
-
-      # Deploy remoto via SSH
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v0.1.9
+      - name: Configurar chave SSH
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            set -e
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-            # Criar pasta do projeto se não existir
-            mkdir -p ~/ci-cd-lab
-            cd ~/ci-cd-lab
+      - name: Copiar arquivos para VPS
+        run: |
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ \
+          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/home/${{ secrets.SERVER_USER }}/meuapp
 
-            # Atualizar código do GitHub
-            if [ ! -d ".git" ]; then
-              git clone https://github.com/SEU_USUARIO/SEU_REPO.git .
-            else
-              git reset --hard
-              git pull origin main
-            fi
-
-            # Subir app com Docker Compose
-            docker compose down
+      - name: Deploy com Docker Compose
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+            cd /home/${{ secrets.SERVER_USER }}/meuapp &&
+            docker compose pull &&
             docker compose up -d --build
+          "
