@@ -25,7 +25,7 @@ jobs:
 
       - name: Deploy com Docker Compose
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+          ssh -o 22376 StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
             cd /home/${{ secrets.SERVER_USER }}/meuapp &&
             docker compose pull &&
             docker compose up -d --build
