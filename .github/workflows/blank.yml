@@ -1,0 +1,46 @@
+name: CI/CD Deploy to VPS
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      # Rodar testes antes do deploy (boa prática)
+      - name: Run Tests
+        run: |
+          cd app
+          npm install
+          npm test
+
+      # Deploy remoto via SSH
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+
+            # Criar pasta do projeto se não existir
+            mkdir -p ~/ci-cd-lab
+            cd ~/ci-cd-lab
+
+            # Atualizar código do GitHub
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/SEU_USUARIO/SEU_REPO.git .
+            else
+              git reset --hard
+              git pull origin main
+            fi
+
+            # Subir app com Docker Compose
+            docker compose down
+            docker compose up -d --build
